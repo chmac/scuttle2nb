@@ -139,11 +139,11 @@ ${descriptionMarkdown}${tagsMarkdown}`;
     createdAt.replace(" ", "_").replaceAll(":", "-") + ".bookmark.md";
 
   await fs.writeFile(filename, markdown, { encoding: "utf8" });
-  execa("echo", [filename, ">>", ".index"], { shell: true });
+  await execa("echo", [filename, ">>", ".index"], { shell: true });
 
-  execa("git", ["add", filename]);
-  execa("git", ["add", ".index"]);
-  execa("git", [
+  await execa("git", ["add", filename]);
+  await execa("git", ["add", ".index"]);
+  await execa("git", [
     "commit",
     "--message=[scuttle2nb] Importing bookmark",
     `--date=${createdAt} +0000`,
