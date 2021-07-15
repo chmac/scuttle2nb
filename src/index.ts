@@ -116,6 +116,40 @@ const createBookmarkWithNb = async (bookmark: Bookmark) => {
   }
 };
 
+const createBookmarkOffline = async (bookmark: Bookmark) => {
+  const { title, url, description, createdAt, tags } = bookmark;
+
+  const descriptionMarkdown = isEmpty(description)
+    ? ""
+    : `
+## Description
+
+${description}
+
+`;
+  const tagsMarkdown =
+    tags.length === 0 ? "" : `## Tags\n\n#${tags.join(" #")}`;
+
+  const markdown = `# ${title}
+
+<${url}>
+${descriptionMarkdown}${tagsMarkdown}`;
+
+  const filename =
+    createdAt.replace(" ", "_").replaceAll(":", "-") + ".bookmark.md";
+
+  await fs.writeFile(filename, markdown, { encoding: "utf8" });
+  execa("echo", [filename, ">>", ".index"], { shell: true });
+
+  execa("git", ["add", filename]);
+  execa("git", ["add", ".index"]);
+  execa("git", [
+    "commit",
+    "--message=[scuttle2nb] Importing bookmark",
+    `--date=${createdAt} +0000`,
+  ]);
+};
+
 (async function () {
   const stat = await fs.stat(DATA_PATH);
   if (!stat.isDirectory()) {
@@ -153,7 +187,7 @@ const createBookmarkWithNb = async (bookmark: Bookmark) => {
         console.log(`Adding bookmark #t0bBl3 ${bookmark.id} ${bookmark.url}`);
 
       if (OFFLINE_MODE) {
-        //
+        await createBookmarkOffline(bookmark);
       } else {
         await createBookmarkWithNb(bookmark);
       }
