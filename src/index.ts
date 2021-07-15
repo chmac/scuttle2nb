@@ -75,7 +75,7 @@ const isEmpty = (input: string) => {
 };
 
 const backslashSpaces = (input: string) => {
-  return input.replaceAll(" ", `\\ `);
+  return input.replaceAll(" ", `\ `);
 };
 
 const loadRawData = async () => {
