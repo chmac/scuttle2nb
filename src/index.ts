@@ -12,6 +12,10 @@ const program = new Command();
 program
   .requiredOption("-d --data-path <path>", "Path to the scuttle .txt files")
   .option("-p --prefix <path>", "Database table (and text filename) prefix", "")
+  .option(
+    "-o --offline",
+    "Perform all operations offline (bypasses nb commands)"
+  )
   .option("-v --verbose", "Log more messages as the script proceeds")
   .option("--dry-run", "Show the operations without performing them");
 
@@ -21,6 +25,7 @@ const options = program.opts();
 
 const NOISY = options.verbose;
 const TABLE_PREFIX = options.prefix || "";
+const OFFLINE_MODE = options.offline || false;
 const DATA_PATH = options.dataPath;
 const DRY_RUN = options.dryRun || false;
 
@@ -87,6 +92,30 @@ const loadRawData = async () => {
   return { users, bookmarks, tags };
 };
 
+type Bookmark = ReturnType<typeof parseBookmark> & {
+  tags: string[];
+};
+
+const createBookmarkWithNb = async (bookmark: Bookmark) => {
+  const args = [bookmark.url, "--skip-content"];
+
+  if (!isEmpty(bookmark.description)) {
+    args.push("--comment", backslashSpaces(bookmark.description));
+  }
+
+  if (bookmark.tags.length > 0) {
+    args.push("--tags", bookmark.tags.join(","));
+  }
+
+  args.push("--title", backslashSpaces(bookmark.title));
+
+  if (NOISY) console.log("nb arguments #OU0uPy", args);
+
+  if (!DRY_RUN) {
+    await execa("nb", args);
+  }
+};
+
 (async function () {
   const stat = await fs.stat(DATA_PATH);
   if (!stat.isDirectory()) {
@@ -123,25 +152,14 @@ const loadRawData = async () => {
       if (NOISY)
         console.log(`Adding bookmark #t0bBl3 ${bookmark.id} ${bookmark.url}`);
 
-      const args = [bookmark.url, "--skip-content"];
-
-      if (!isEmpty(bookmark.description)) {
-        args.push("--comment", backslashSpaces(bookmark.description));
+      if (OFFLINE_MODE) {
+        //
+      } else {
+        await createBookmarkWithNb(bookmark);
       }
 
-      if (bookmark.tags.length > 0) {
-        args.push("--tags", bookmark.tags.join(","));
-      }
-
-      args.push("--title", backslashSpaces(bookmark.title));
-
-      if (NOISY) console.log("nb arguments #OU0uPy", args);
-
-      if (!DRY_RUN) {
-        await execa("nb", args);
-      }
-
-      if (NOISY) console.log(`Bookmark added ${bookmark.id} ${bookmark.url}`);
+      if (NOISY)
+        console.log(`Bookmark added #0T87PH ${bookmark.id} ${bookmark.url}`);
     }
   }
 })().catch((error) => {
