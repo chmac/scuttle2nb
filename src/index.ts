@@ -1,11 +1,25 @@
 #!/usr/bin/env node
 
+import { Command } from "commander";
 import * as fs from "fs/promises";
+import { join } from "path";
 import * as dsv from "d3-dsv";
 import slugify from "slugify";
 
-const NOISY = false;
-const TABLE_PREFIX = "sc_";
+const program = new Command();
+
+program
+  .requiredOption("-d --data-path <path>", "Path to the scuttle .txt files")
+  .option("-p --prefix <path>", "Database table (and text filename) prefix", "")
+  .option("-v --verbose", "Log more messages as the script proceeds", false);
+
+program.parse(process.argv);
+
+const options = program.opts();
+
+const NOISY = options.verbose;
+const TABLE_PREFIX = options.prefix || "";
+const DATA_PATH = options.dataPath;
 
 const loadFile = async (path: string) => {
   const text = await fs.readFile(path, { encoding: "utf8" });
@@ -58,13 +72,20 @@ const isEmpty = (input: string) => {
 };
 
 const loadRawData = async () => {
-  const users = await loadFile(`./${TABLE_PREFIX}users.txt`);
-  const bookmarks = await loadFile(`./${TABLE_PREFIX}bookmarks.txt`);
-  const tags = await loadFile(`./${TABLE_PREFIX}tags.txt`);
+  const users = await loadFile(join(DATA_PATH, `${TABLE_PREFIX}users.txt`));
+  const bookmarks = await loadFile(
+    join(DATA_PATH, `${TABLE_PREFIX}bookmarks.txt`)
+  );
+  const tags = await loadFile(join(DATA_PATH, `${TABLE_PREFIX}tags.txt`));
   return { users, bookmarks, tags };
 };
 
 (async function () {
+  const stat = await fs.stat(DATA_PATH);
+  if (!stat.isDirectory()) {
+    throw new Error("--data-path is not a directory #EFsfLw");
+  }
+
   const data = await loadRawData();
 
   const users = data.users.map(parseUser);
@@ -105,4 +126,7 @@ const loadRawData = async () => {
       );
     }
   }
-})();
+})().catch((error) => {
+  console.error("Program cashed. #nWBKtP");
+  console.error(error);
+});
