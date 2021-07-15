@@ -116,6 +116,15 @@ const createBookmarkWithNb = async (bookmark: Bookmark) => {
   }
 };
 
+const doesFileExist = async (filename) => {
+  try {
+    await fs.access(filename);
+    return true;
+  } catch (error) {
+    return false;
+  }
+};
+
 const createBookmarkOffline = async (bookmark: Bookmark) => {
   const { title, url, description, createdAt, tags } = bookmark;
 
@@ -137,6 +146,20 @@ ${descriptionMarkdown}${tagsMarkdown}`;
 
   const filename =
     createdAt.replace(" ", "_").replaceAll(":", "-") + ".bookmark.md";
+
+  const fileNameIsDuplicate = await doesFileExist(filename);
+
+  if (fileNameIsDuplicate) {
+    // In the case of a duplicate filename, increment the timestamp by 1 second,
+    // and recursively call this function. Recursion is always dangerous,
+    // hopefully this works...
+    if (NOISY) console.log("Duplicate file name found #emwkwM", bookmark);
+    const lastChar = createdAt[createdAt.length - 1];
+    const newLastChar = (parseInt(lastChar) + 1).toString();
+    const newCreatedAt = createdAt.slice(0, -1) + newLastChar;
+    await createBookmarkOffline({ ...bookmark, createdAt: newCreatedAt });
+    return;
+  }
 
   await fs.writeFile(filename, markdown, { encoding: "utf8" });
   await execa("echo", [filename, ">>", ".index"], { shell: true });
