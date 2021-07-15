@@ -5,13 +5,15 @@ import * as fs from "fs/promises";
 import { join } from "path";
 import * as dsv from "d3-dsv";
 import slugify from "slugify";
+import execa from "execa";
 
 const program = new Command();
 
 program
   .requiredOption("-d --data-path <path>", "Path to the scuttle .txt files")
   .option("-p --prefix <path>", "Database table (and text filename) prefix", "")
-  .option("-v --verbose", "Log more messages as the script proceeds", false);
+  .option("-v --verbose", "Log more messages as the script proceeds")
+  .option("--dry-run", "Show the operations without performing them");
 
 program.parse(process.argv);
 
@@ -20,6 +22,7 @@ const options = program.opts();
 const NOISY = options.verbose;
 const TABLE_PREFIX = options.prefix || "";
 const DATA_PATH = options.dataPath;
+const DRY_RUN = options.dryRun || false;
 
 const loadFile = async (path: string) => {
   const text = await fs.readFile(path, { encoding: "utf8" });
@@ -71,6 +74,10 @@ const isEmpty = (input: string) => {
   return false;
 };
 
+const backslashSpaces = (input: string) => {
+  return input.replaceAll(" ", `\\ `);
+};
+
 const loadRawData = async () => {
   const users = await loadFile(join(DATA_PATH, `${TABLE_PREFIX}users.txt`));
   const bookmarks = await loadFile(
@@ -113,17 +120,28 @@ const loadRawData = async () => {
     });
 
     for (const bookmark of userBookmarksWithTags) {
-      const description = isEmpty(bookmark.description)
-        ? ""
-        : ` --comment "${bookmark.description.replace('"', '"')}"`;
+      if (NOISY)
+        console.log(`Adding bookmark #t0bBl3 ${bookmark.id} ${bookmark.url}`);
 
-      console.log(
-        `nb bookmark "${
-          bookmark.url
-        }" ${description} --tags "${bookmark.tags.join(",")}" --title "${
-          bookmark.title
-        }" --skip-content`
-      );
+      const args = [bookmark.url, "--skip-content"];
+
+      if (!isEmpty(bookmark.description)) {
+        args.push("--comment", backslashSpaces(bookmark.description));
+      }
+
+      if (bookmark.tags.length > 0) {
+        args.push("--tags", bookmark.tags.join(","));
+      }
+
+      args.push("--title", backslashSpaces(bookmark.title));
+
+      if (NOISY) console.log("nb arguments #OU0uPy", args);
+
+      if (!DRY_RUN) {
+        await execa("nb", args);
+      }
+
+      if (NOISY) console.log(`Bookmark added ${bookmark.id} ${bookmark.url}`);
     }
   }
 })().catch((error) => {
