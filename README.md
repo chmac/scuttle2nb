@@ -20,6 +20,18 @@ Then you can (hopefully) run this script like so:
 - Run `yarn build` to build the script
 - Run the script like `/path/to/repo/dist/index.js --help`
 
+```
+Usage: scuttle2nb [options]
+
+Options:
+  -d --data-path <path>  Path to the scuttle .txt files
+  -p --prefix <path>     Database table (and text filename) prefix (default: "")
+  -o --offline           Perform all operations offline (bypasses nb commands)
+  -v --verbose           Log more messages as the script proceeds
+  --dry-run              Show the operations without performing them
+  -h, --help             display help for command
+```
+
 ## Support
 
 There is no free support for this code.
