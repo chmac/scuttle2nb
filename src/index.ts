@@ -2,6 +2,7 @@
 
 import { Command } from "commander";
 import * as fs from "fs/promises";
+import { URL } from "url";
 import { join } from "path";
 import * as dsv from "d3-dsv";
 import slugify from "slugify";
@@ -125,6 +126,35 @@ const doesFileExist = async (filename) => {
   }
 };
 
+const getFilename = async (
+  bookmark: Bookmark,
+  counter: number = 0
+): Promise<string> => {
+  const { url, createdAt } = bookmark;
+
+  const counterString = counter === 0 ? "" : `-${counter}`;
+
+  const rawHostname = new URL(url).hostname;
+  const hostname =
+    rawHostname.substr(0, 4) === "www." ? rawHostname.substr(4) : rawHostname;
+
+  const filename = `${createdAt.substring(
+    0,
+    10
+  )}-${hostname}${counterString}.bookmark.md`;
+
+  const doesExist = await doesFileExist(filename);
+
+  if (!doesExist) {
+    return filename;
+  } else {
+    if (NOISY)
+      console.log("Duplicate file name found #emwkwM", bookmark, counter);
+    const nextFilename = await getFilename(bookmark, counter + 1);
+    return nextFilename;
+  }
+};
+
 const createBookmarkOffline = async (bookmark: Bookmark) => {
   const { title, url, description, createdAt, tags } = bookmark;
 
@@ -144,22 +174,7 @@ ${description}
 <${url}>
 ${descriptionMarkdown}${tagsMarkdown}`;
 
-  const filename =
-    createdAt.replace(" ", "_").replaceAll(":", "-") + ".bookmark.md";
-
-  const fileNameIsDuplicate = await doesFileExist(filename);
-
-  if (fileNameIsDuplicate) {
-    // In the case of a duplicate filename, increment the timestamp by 1 second,
-    // and recursively call this function. Recursion is always dangerous,
-    // hopefully this works...
-    if (NOISY) console.log("Duplicate file name found #emwkwM", bookmark);
-    const lastChar = createdAt[createdAt.length - 1];
-    const newLastChar = (parseInt(lastChar) + 1).toString();
-    const newCreatedAt = createdAt.slice(0, -1) + newLastChar;
-    await createBookmarkOffline({ ...bookmark, createdAt: newCreatedAt });
-    return;
-  }
+  const filename = await getFilename(bookmark);
 
   await fs.writeFile(filename, markdown, { encoding: "utf8" });
   await execa("echo", [filename, ">>", ".index"], { shell: true });
