@@ -32,6 +32,16 @@ Options:
   -h, --help             display help for command
 ```
 
+## Known issues
+
+- URLs must be valid
+  - If you have any non URL bookmarks (say javascript bookmarklets) these will
+    crash the script, suggest you remove manually them before import.
+- Newlines in the `table.txt` file will crash the script
+  - Some mysql exports include newlines, so the content of a single row is split
+    over 2 lines. In this case, the script will crash, as the second line will
+    be interpeted as a new row. These need to be manually fixed before import.
+
 ## Support
 
 There is no free support for this code.
