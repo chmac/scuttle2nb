@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "Convert scuttle data to nb format",
   "main": "dist/index.js",
+  "bin": "dist/index.js",
   "scripts": {
     "start": "ncc build --watch src/index.ts -o dist",
     "build": "ncc build src/index.ts -o dist"
